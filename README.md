@@ -49,3 +49,7 @@ s
 The next thing we need is to be able to display the line number of runtime errors. We need to be able ot determine the line of the user's source program from its compiled from. We can use here a seperate array of line information. One of the nice things that simplifies our implementation is that this array will be the exact same size as our instruction set, so we don't need to keep track of more variables. This is very memory inefficient, but conceptually simple.   We can print these out with the debugger pretty easily.
 
 The entire AST is replaced by three arrays: bytes of code constant values, and line information. 
+
+### Challenges
+
+Write an encoding of the line numbers that is more memory efficient. My idea here is record the line number, then a number that indicates the number of times that the line is repeated. Run-length encoding actually inverts that, so the count then the line number. 

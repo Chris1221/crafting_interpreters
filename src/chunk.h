@@ -16,8 +16,11 @@ typedef struct {
   int count;  // Number of instructions in use
   int capacity;  // Number of instructions allocated
   uint8_t* code;
-  int* lines;
+  //int* lines;
+  ValueArray lines; // new arary to hold the lines
   ValueArray constants; // the data 
+
+  int line_idx; // which line is currently being stored
 } Chunk;
 
 // No constructors so here's one
