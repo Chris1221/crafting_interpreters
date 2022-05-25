@@ -1,5 +1,3 @@
-# crafting_interpreters
-
 Working through Robert Nystrom's Crafting Interpreters starting directly from `clox`.
 
 ## Chapter 14: Chunks of Bytecode 
@@ -49,3 +47,39 @@ s
 The next thing we need is to be able to display the line number of runtime errors. We need to be able ot determine the line of the user's source program from its compiled from. We can use here a seperate array of line information. One of the nice things that simplifies our implementation is that this array will be the exact same size as our instruction set, so we don't need to keep track of more variables. This is very memory inefficient, but conceptually simple.   We can print these out with the debugger pretty easily.
 
 The entire AST is replaced by three arrays: bytes of code constant values, and line information. 
+
+**Note:**
+
+- I have made some partial progress on the first challenge, stored in a feature branch here, but did not have a chance to finish it. I'm moving on to chapter 15 now. 
+
+## Chapter 15: A Virtual Machine 
+
+A virtual machine here executes the instructions from the bytecode. In this implementation we use a single global VM. A different way of doing this would be to pass around a pointer to a VM through many different places, which may be more efficient for more complex languages. 
+
+We keep track of where the VM is in the bytecode using a pointer called `ip` or instruction pointer for legacy reasons. IP points to the instruction *about to be executed*, or the *next instruction*. 
+
+The run function does a lot of the meat of the computation with the language. It's a loop over all the bytecodes, using the IP as the index, with a switch for the different OP codes. That makes a lot of sense; when it sees a different OP code, it does something different. The reading is done through the `READ_BYTE` macro, by looking at the byte currently pointed at by IP and advancing the pointer. This is called "dispatching" or "decoding". This simplicity is a lot of the reason why it is so fast.  
+
+We also need a way to move values around. Like the instruction `print 3-2`, the `3` and `2` need to be stored and then the interpreter needs to know how to subtract htem.. In the java implementation, this tree is walked recursively to figure out all the values in the right order 
+
+![](https://craftinginterpreters.com/image/a-virtual-machine/ast.png)
+
+Our `run()` function is not recursive in `clox`. It is linear, just a series of bytes. There's an interesting way to address this, which is basically tracking when the numbers are consumed and fill in those gaps with the new values. 
+
+![](https://craftinginterpreters.com/image/a-virtual-machine/bars-stacked.png)
+
+The first number to appear is the last to be consumed. Last-in, first-out. That's a `stack` (not a heap). We push numbers onto the stack from the right; when they are consumed they pop off from the most right to the most left. When the instructions produce a value, it pushes it onto the stack. When it needs to consume these, it gets them by popping them off the stack.
+
+The stack is basically a raw C array. The bottom is element 0 and we grow the stack on top of it. We use a direct pointer instead of an integer index because it's faster to dereference a pointer than calculate the offset with an integer. The `stack_top` refers to the place where the next pushed value *will* go (sort of like IP). There's a max to this stack, and if you go over it you get the classic "stack overflow". 
+
+This stack basically is how constants should be stored from above (where it wasn't very clear). The constant gets pushed onto the stack and then when asked to return it, it is returned.
+
+### An arithmetic calculator
+
+To create a unary operator that negates a value, we can create a case that returns the negative of the last value on the stack. This is pushed back on top of the stack (index -1 then +1) so that it is available. 
+
+For binary operators, we use a macro `BINARY_OP` that takes in the C operator and uses it in a macro. A macro will just use this as text and expand it out anyway, which is kind of a crazy use of a macro. Macros are *super* low level and will accept basically anything... Including a function! 
+
+A binary operator takes two operands, so it pops twice. It performs some operation then pushes the result to the stack.  We do this effectively backwards to take off the second one from the stack ebfore the first one.
+
+![](https://craftinginterpreters.com/image/a-virtual-machine/reverse.png)
